@@ -1,0 +1,31 @@
+{
+  "name": "vs-code-ai-extension",
+  "displayName": "VS Code AI (kontrollert)",
+  "description": "Kontrollert AI-støtte for kodearbeid",
+  "version": "0.0.1",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [
+    "onCommand:vsCodeAI.start"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "vsCodeAI.start",
+        "title": "VS Code AI: Start"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/vscode": "^1.90.0"
+  }
+}
