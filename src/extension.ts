@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 
 export function activate(context: vscode.ExtensionContext) {
-  const disposable = vscode.commands.registerCommand(
+  const startDisposable = vscode.commands.registerCommand(
     "vsCodeAI.start",
     () => {
       vscode.window.showInformationMessage(
@@ -10,7 +10,17 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  context.subscriptions.push(disposable);
+  const explainDisposable = vscode.commands.registerCommand(
+    "vsCodeAI.explainSelection",
+    () => {
+      vscode.window.showInformationMessage(
+        "Forklaring er ikke implementert ennå."
+      );
+    }
+  );
+
+  context.subscriptions.push(startDisposable);
+  context.subscriptions.push(explainDisposable);
 }
 
 export function deactivate() {}

@@ -9,7 +9,8 @@
   },
   "categories": ["Other"],
   "activationEvents": [
-    "onCommand:vsCodeAI.start"
+    "onCommand:vsCodeAI.start",
+    "onCommand:vsCodeAI.explainSelection"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -17,6 +18,10 @@
       {
         "command": "vsCodeAI.start",
         "title": "VS Code AI: Start"
+      },
+      {
+        "command": "vsCodeAI.explainSelection",
+        "title": "VS Code AI: Forklar valgt kode"
       }
     ]
   },
