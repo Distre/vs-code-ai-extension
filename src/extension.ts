@@ -18,7 +18,8 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      presentText(selectedText);
+      const explanation = explainText(selectedText);
+      presentExplanation(selectedText, explanation);
     }
   );
 
@@ -44,14 +45,31 @@ function getSelectedText(): string | null {
   return editor.document.getText(selection);
 }
 
-function presentText(text: string): void {
+/**
+ * Placeholder for forklaringslogikk.
+ * Ingen AI. Ingen nett. Deterministisk.
+ */
+function explainText(text: string): string {
+  const lines = text.split(/\r?\n/).length;
+  const chars = text.length;
+
+  return [
+    "Dette er en foreløpig, lokal forklaring.",
+    "Ingen AI er brukt.",
+    `Antall linjer: ${lines}`,
+    `Antall tegn: ${chars}`
+  ].join("\n");
+}
+
+function presentExplanation(code: string, explanation: string): void {
   const output = vscode.window.createOutputChannel("VS Code AI – Forklaring");
   output.clear();
+  output.appendLine("=== Forklaring ===");
+  output.appendLine(explanation);
+  output.appendLine("");
   output.appendLine("=== Valgt kode ===");
   output.appendLine("");
-  output.appendLine(text);
-  output.appendLine("");
-  output.appendLine(`(${text.length} tegn)`);
+  output.appendLine(code);
   output.show(true);
 }
 
