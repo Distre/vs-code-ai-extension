@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 
 /**
- * AI-kontrakt (uendret)
+ * AI-kontrakt
  */
 interface AIExplainer {
   explain(input: ExplainInput): Promise<ExplainOutput>;
@@ -18,15 +18,14 @@ type ExplainOutput = {
 };
 
 /**
- * Adapter-kontrakt: kapsler hvordan vi får en AIExplainer
- * (lokal stub nå, ekte AI senere).
+ * Adapter-kontrakt
  */
 interface AIAdapter {
   getExplainer(): AIExplainer;
 }
 
 /**
- * Lokal adapter (ingen nett, deterministisk).
+ * Lokal adapter (ingen nett)
  */
 class LocalAIAdapter implements AIAdapter {
   getExplainer(): AIExplainer {
@@ -35,7 +34,7 @@ class LocalAIAdapter implements AIAdapter {
 }
 
 /**
- * Lokal, deterministisk stub (samme som før, men bak adapter).
+ * Lokal, deterministisk stub
  */
 class LocalExplainerStub implements AIExplainer {
   async explain(input: ExplainInput): Promise<ExplainOutput> {
@@ -54,7 +53,6 @@ class LocalExplainerStub implements AIExplainer {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  // 🔒 Ett eksplisitt valgpunkt for AI-kilde (kun lokal nå)
   const adapter: AIAdapter = new LocalAIAdapter();
   const explainer: AIExplainer = adapter.getExplainer();
 
@@ -71,8 +69,17 @@ export function activate(context: vscode.ExtensionContext) {
     "vsCodeAI.explainSelection",
     async () => {
       const selectedText = getSelectedText();
-      if (!selectedText) {
-        return;
+      if (!selectedText) return;
+
+      const consent = await vscode.window.showInformationMessage(
+        "Vil du lage en forklaring av valgt kode?",
+        { modal: true },
+        "Ja",
+        "Nei"
+      );
+
+      if (consent !== "Ja") {
+        return; // 🔒 eksplisitt stopp
       }
 
       const editor = vscode.window.activeTextEditor!;
@@ -81,7 +88,6 @@ export function activate(context: vscode.ExtensionContext) {
         languageId: editor.document.languageId
       };
 
-      // Stopp-punkt: kun adapter → kontrakt
       const result = await explainer.explain(input);
       presentExplanation(selectedText, result);
     }
@@ -93,20 +99,15 @@ export function activate(context: vscode.ExtensionContext) {
 
 function getSelectedText(): string | null {
   const editor = vscode.window.activeTextEditor;
-
   if (!editor) {
     vscode.window.showWarningMessage("Ingen aktiv editor.");
     return null;
   }
-
-  const selection = editor.selection;
-
-  if (selection.isEmpty) {
+  if (editor.selection.isEmpty) {
     vscode.window.showWarningMessage("Ingen kode er valgt.");
     return null;
   }
-
-  return editor.document.getText(selection);
+  return editor.document.getText(editor.selection);
 }
 
 function presentExplanation(code: string, result: ExplainOutput): void {
