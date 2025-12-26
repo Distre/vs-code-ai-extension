@@ -13,8 +13,28 @@ export function activate(context: vscode.ExtensionContext) {
   const explainDisposable = vscode.commands.registerCommand(
     "vsCodeAI.explainSelection",
     () => {
+      const editor = vscode.window.activeTextEditor;
+
+      if (!editor) {
+        vscode.window.showWarningMessage(
+          "Ingen aktiv editor."
+        );
+        return;
+      }
+
+      const selection = editor.selection;
+
+      if (selection.isEmpty) {
+        vscode.window.showWarningMessage(
+          "Ingen kode er valgt."
+        );
+        return;
+      }
+
+      const selectedText = editor.document.getText(selection);
+
       vscode.window.showInformationMessage(
-        "Forklaring er ikke implementert ennå."
+        `Valgt tekst (${selectedText.length} tegn).`
       );
     }
   );
