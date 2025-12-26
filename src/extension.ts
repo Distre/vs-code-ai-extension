@@ -53,7 +53,7 @@ class LocalExplainerStub implements AIExplainer {
 }
 
 /**
- * Timeout-hjelper (fail-safe, strict-safe)
+ * Timeout-hjelper (fail-safe)
  */
 async function withTimeout<T>(
   promise: Promise<T>,
@@ -72,19 +72,40 @@ async function withTimeout<T>(
   try {
     return await Promise.race([promise, timeout]);
   } finally {
-    if (timer) {
-      clearTimeout(timer);
-    }
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/**
+ * Lokal logg (Output Channel)
+ */
+class LocalLogger {
+  private channel = vscode.window.createOutputChannel("VS Code AI – Logg");
+
+  info(message: string) {
+    this.channel.appendLine(`[INFO] ${new Date().toISOString()} ${message}`);
+  }
+
+  warn(message: string) {
+    this.channel.appendLine(`[WARN] ${new Date().toISOString()} ${message}`);
+  }
+
+  show() {
+    this.channel.show(true);
   }
 }
 
 export function activate(context: vscode.ExtensionContext) {
+  const logger = new LocalLogger();
   const adapter: AIAdapter = new LocalAIAdapter();
   const explainer: AIExplainer = adapter.getExplainer();
+
+  logger.info("Utvidelsen aktivert.");
 
   const startDisposable = vscode.commands.registerCommand(
     "vsCodeAI.start",
     () => {
+      logger.info("Start-kommando kjørt.");
       vscode.window.showInformationMessage(
         "VS Code AI er aktivert (ingen handling utført)."
       );
@@ -94,7 +115,9 @@ export function activate(context: vscode.ExtensionContext) {
   const explainDisposable = vscode.commands.registerCommand(
     "vsCodeAI.explainSelection",
     async () => {
-      const selectedText = getSelectedText();
+      logger.info("Forklar valgt kode: kommando startet.");
+
+      const selectedText = getSelectedText(logger);
       if (!selectedText) return;
 
       const consent = await vscode.window.showInformationMessage(
@@ -104,7 +127,10 @@ export function activate(context: vscode.ExtensionContext) {
         "Nei"
       );
 
-      if (consent !== "Ja") return;
+      if (consent !== "Ja") {
+        logger.info("Bruker avbrøt forklaring.");
+        return;
+      }
 
       const editor = vscode.window.activeTextEditor!;
       const input: ExplainInput = {
@@ -117,32 +143,36 @@ export function activate(context: vscode.ExtensionContext) {
           explainer.explain(input),
           2000,
           () => {
+            logger.warn("Forklaring stoppet pga. timeout.");
             vscode.window.showWarningMessage(
               "Forklaringen tok for lang tid og ble stoppet."
             );
           }
         );
 
+        logger.info("Forklaring fullført.");
         presentExplanation(selectedText, result);
       } catch {
+        logger.warn("Forklaring avbrutt.");
         return;
       }
     }
   );
 
-  context.subscriptions.push(startDisposable);
-  context.subscriptions.push(explainDisposable);
+  context.subscriptions.push(startDisposable, explainDisposable);
 }
 
-function getSelectedText(): string | null {
+function getSelectedText(logger: LocalLogger): string | null {
   const editor = vscode.window.activeTextEditor;
 
   if (!editor) {
+    logger.warn("Ingen aktiv editor.");
     vscode.window.showWarningMessage("Ingen aktiv editor.");
     return null;
   }
 
   if (editor.selection.isEmpty) {
+    logger.warn("Ingen kode valgt.");
     vscode.window.showWarningMessage("Ingen kode er valgt.");
     return null;
   }
