@@ -1,8 +1,7 @@
 import * as vscode from "vscode";
 
 /**
- * AI-kontrakt.
- * Ingen implementasjon her – kun form og forventninger.
+ * AI-kontrakt (uendret)
  */
 interface AIExplainer {
   explain(input: ExplainInput): Promise<ExplainOutput>;
@@ -19,8 +18,24 @@ type ExplainOutput = {
 };
 
 /**
- * Lokal, deterministisk stub.
- * Brukes inntil ekte AI kobles på.
+ * Adapter-kontrakt: kapsler hvordan vi får en AIExplainer
+ * (lokal stub nå, ekte AI senere).
+ */
+interface AIAdapter {
+  getExplainer(): AIExplainer;
+}
+
+/**
+ * Lokal adapter (ingen nett, deterministisk).
+ */
+class LocalAIAdapter implements AIAdapter {
+  getExplainer(): AIExplainer {
+    return new LocalExplainerStub();
+  }
+}
+
+/**
+ * Lokal, deterministisk stub (samme som før, men bak adapter).
  */
 class LocalExplainerStub implements AIExplainer {
   async explain(input: ExplainInput): Promise<ExplainOutput> {
@@ -39,7 +54,9 @@ class LocalExplainerStub implements AIExplainer {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  const explainer: AIExplainer = new LocalExplainerStub();
+  // 🔒 Ett eksplisitt valgpunkt for AI-kilde (kun lokal nå)
+  const adapter: AIAdapter = new LocalAIAdapter();
+  const explainer: AIExplainer = adapter.getExplainer();
 
   const startDisposable = vscode.commands.registerCommand(
     "vsCodeAI.start",
@@ -64,9 +81,8 @@ export function activate(context: vscode.ExtensionContext) {
         languageId: editor.document.languageId
       };
 
-      // Stopp-punkt: kun kontraktkall, ingen nett/AI
+      // Stopp-punkt: kun adapter → kontrakt
       const result = await explainer.explain(input);
-
       presentExplanation(selectedText, result);
     }
   );
