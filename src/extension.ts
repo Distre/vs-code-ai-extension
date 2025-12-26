@@ -52,6 +52,32 @@ class LocalExplainerStub implements AIExplainer {
   }
 }
 
+/**
+ * Timeout-hjelper (fail-safe, strict-safe)
+ */
+async function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  onTimeout: () => void
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      onTimeout();
+      reject(new Error("TIMEOUT"));
+    }, ms);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
+}
+
 export function activate(context: vscode.ExtensionContext) {
   const adapter: AIAdapter = new LocalAIAdapter();
   const explainer: AIExplainer = adapter.getExplainer();
@@ -78,9 +104,7 @@ export function activate(context: vscode.ExtensionContext) {
         "Nei"
       );
 
-      if (consent !== "Ja") {
-        return; // 🔒 eksplisitt stopp
-      }
+      if (consent !== "Ja") return;
 
       const editor = vscode.window.activeTextEditor!;
       const input: ExplainInput = {
@@ -88,8 +112,21 @@ export function activate(context: vscode.ExtensionContext) {
         languageId: editor.document.languageId
       };
 
-      const result = await explainer.explain(input);
-      presentExplanation(selectedText, result);
+      try {
+        const result = await withTimeout(
+          explainer.explain(input),
+          2000,
+          () => {
+            vscode.window.showWarningMessage(
+              "Forklaringen tok for lang tid og ble stoppet."
+            );
+          }
+        );
+
+        presentExplanation(selectedText, result);
+      } catch {
+        return;
+      }
     }
   );
 
@@ -99,14 +136,17 @@ export function activate(context: vscode.ExtensionContext) {
 
 function getSelectedText(): string | null {
   const editor = vscode.window.activeTextEditor;
+
   if (!editor) {
     vscode.window.showWarningMessage("Ingen aktiv editor.");
     return null;
   }
+
   if (editor.selection.isEmpty) {
     vscode.window.showWarningMessage("Ingen kode er valgt.");
     return null;
   }
+
   return editor.document.getText(editor.selection);
 }
 
