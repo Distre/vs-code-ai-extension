@@ -16,26 +16,27 @@ export function activate(context: vscode.ExtensionContext) {
       const editor = vscode.window.activeTextEditor;
 
       if (!editor) {
-        vscode.window.showWarningMessage(
-          "Ingen aktiv editor."
-        );
+        vscode.window.showWarningMessage("Ingen aktiv editor.");
         return;
       }
 
       const selection = editor.selection;
 
       if (selection.isEmpty) {
-        vscode.window.showWarningMessage(
-          "Ingen kode er valgt."
-        );
+        vscode.window.showWarningMessage("Ingen kode er valgt.");
         return;
       }
 
       const selectedText = editor.document.getText(selection);
 
-      vscode.window.showInformationMessage(
-        `Valgt tekst (${selectedText.length} tegn).`
-      );
+      const output = vscode.window.createOutputChannel("VS Code AI – Forklaring");
+      output.clear();
+      output.appendLine("=== Valgt kode ===");
+      output.appendLine("");
+      output.appendLine(selectedText);
+      output.appendLine("");
+      output.appendLine(`(${selectedText.length} tegn)`);
+      output.show(true);
     }
   );
 
