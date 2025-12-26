@@ -13,35 +13,46 @@ export function activate(context: vscode.ExtensionContext) {
   const explainDisposable = vscode.commands.registerCommand(
     "vsCodeAI.explainSelection",
     () => {
-      const editor = vscode.window.activeTextEditor;
-
-      if (!editor) {
-        vscode.window.showWarningMessage("Ingen aktiv editor.");
+      const selectedText = getSelectedText();
+      if (!selectedText) {
         return;
       }
 
-      const selection = editor.selection;
-
-      if (selection.isEmpty) {
-        vscode.window.showWarningMessage("Ingen kode er valgt.");
-        return;
-      }
-
-      const selectedText = editor.document.getText(selection);
-
-      const output = vscode.window.createOutputChannel("VS Code AI – Forklaring");
-      output.clear();
-      output.appendLine("=== Valgt kode ===");
-      output.appendLine("");
-      output.appendLine(selectedText);
-      output.appendLine("");
-      output.appendLine(`(${selectedText.length} tegn)`);
-      output.show(true);
+      presentText(selectedText);
     }
   );
 
   context.subscriptions.push(startDisposable);
   context.subscriptions.push(explainDisposable);
+}
+
+function getSelectedText(): string | null {
+  const editor = vscode.window.activeTextEditor;
+
+  if (!editor) {
+    vscode.window.showWarningMessage("Ingen aktiv editor.");
+    return null;
+  }
+
+  const selection = editor.selection;
+
+  if (selection.isEmpty) {
+    vscode.window.showWarningMessage("Ingen kode er valgt.");
+    return null;
+  }
+
+  return editor.document.getText(selection);
+}
+
+function presentText(text: string): void {
+  const output = vscode.window.createOutputChannel("VS Code AI – Forklaring");
+  output.clear();
+  output.appendLine("=== Valgt kode ===");
+  output.appendLine("");
+  output.appendLine(text);
+  output.appendLine("");
+  output.appendLine(`(${text.length} tegn)`);
+  output.show(true);
 }
 
 export function deactivate() {}
