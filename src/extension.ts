@@ -1,60 +1,84 @@
 import * as vscode from "vscode";
 
-/**
- * AI-kontrakt
- */
+/* =========================================================
+   AI CONTRACT
+   ---------------------------------------------------------
+   Defines how an AI explainer must behave.
+   No implementation details here.
+   ========================================================= */
+
 interface AIExplainer {
   explain(input: ExplainInput): Promise<ExplainOutput>;
 }
 
+/* =========================================================
+   DATA TYPES
+   ---------------------------------------------------------
+   Input and output structures for explanations.
+   ========================================================= */
+
 type ExplainInput = {
-  code: string;
-  languageId: string;
+  code: string;        // Selected source code
+  languageId: string;  // VS Code language identifier
 };
 
 type ExplainOutput = {
-  summary: string;
-  details: string;
+  summary: string;     // Short explanation summary
+  details: string;     // Detailed explanation text
 };
 
-/**
- * Adapter-kontrakt
- */
+/* =========================================================
+   AI ADAPTER CONTRACT
+   ---------------------------------------------------------
+   Decouples "where AI comes from" from "how it is used".
+   ========================================================= */
+
 interface AIAdapter {
   getExplainer(): AIExplainer;
 }
 
-/**
- * Lokal adapter (ingen nett)
- */
+/* =========================================================
+   LOCAL AI ADAPTER
+   ---------------------------------------------------------
+   Returns a local stub instead of real AI.
+   No network access.
+   ========================================================= */
+
 class LocalAIAdapter implements AIAdapter {
   getExplainer(): AIExplainer {
     return new LocalExplainerStub();
   }
 }
 
-/**
- * Lokal, deterministisk stub
- */
+/* =========================================================
+   LOCAL EXPLAINER STUB
+   ---------------------------------------------------------
+   Deterministic, offline placeholder.
+   Used until real AI is connected.
+   ========================================================= */
+
 class LocalExplainerStub implements AIExplainer {
   async explain(input: ExplainInput): Promise<ExplainOutput> {
     const lines = input.code.split(/\r?\n/).length;
     const chars = input.code.length;
 
     return {
-      summary: "Foreløpig lokal forklaring (ingen AI).",
+      summary: "Local placeholder explanation (no AI used).",
       details: [
-        `Språk: ${input.languageId}`,
-        `Linjer: ${lines}`,
-        `Tegn: ${chars}`
+        `Language: ${input.languageId}`,
+        `Lines: ${lines}`,
+        `Characters: ${chars}`
       ].join("\n")
     };
   }
 }
 
-/**
- * Timeout-hjelper (fail-safe)
- */
+/* =========================================================
+   TIMEOUT / FAIL-SAFE HELPER
+   ---------------------------------------------------------
+   Ensures explanation calls can never hang.
+   ========================================================= */
+
 async function withTimeout<T>(
   promise: Promise<T>,
   ms: number,
@@ -76,11 +100,15 @@ async function withTimeout<T>(
   }
 }
 
-/**
- * Lokal logg (Output Channel)
- */
+/* =========================================================
+   LOCAL LOGGER
+   ---------------------------------------------------------
+   Logs events to a VS Code Output Channel.
+   No file or network logging.
+   ========================================================= */
+
 class LocalLogger {
-  private channel = vscode.window.createOutputChannel("VS Code AI – Logg");
+  private channel = vscode.window.createOutputChannel("VS Code AI – Log");
 
   info(message: string) {
     this.channel.appendLine(`[INFO] ${new Date().toISOString()} ${message}`);
@@ -91,16 +119,19 @@ class LocalLogger {
   }
 }
 
-/**
- * Statusindikator (Status Bar)
- */
+/* =========================================================
+   STATUS BAR INDICATOR
+   ---------------------------------------------------------
+   Gives the user clear feedback about current state.
+   ========================================================= */
+
 class StatusIndicator {
   private item = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Left
   );
 
   constructor() {
-    this.item.text = "VS Code AI: Klar";
+    this.item.text = "VS Code AI: Ready";
     this.item.show();
   }
 
@@ -113,6 +144,12 @@ class StatusIndicator {
   }
 }
 
+/* =========================================================
+   EXTENSION ACTIVATION
+   ---------------------------------------------------------
+   Entry point for the VS Code extension.
+   ========================================================= */
+
 export function activate(context: vscode.ExtensionContext) {
   const logger = new LocalLogger();
   const status = new StatusIndicator();
@@ -120,46 +157,68 @@ export function activate(context: vscode.ExtensionContext) {
   const adapter: AIAdapter = new LocalAIAdapter();
   const explainer: AIExplainer = adapter.getExplainer();
 
-  logger.info("Utvidelsen aktivert.");
-  status.set("Klar");
+  logger.info("Extension activated.");
+  status.set("Ready");
 
+  /* -------------------------
+     Start command
+     ------------------------- */
   const startDisposable = vscode.commands.registerCommand(
     "vsCodeAI.start",
     () => {
-      logger.info("Start-kommando kjørt.");
-      status.set("Klar");
+      logger.info("Start command executed.");
+      status.set("Ready");
       vscode.window.showInformationMessage(
-        "VS Code AI er aktivert (ingen handling utført)."
+        "VS Code AI is active (no action performed)."
       );
     }
   );
 
+  /* -------------------------
+     Explain selected code
+     ------------------------- */
   const explainDisposable = vscode.commands.registerCommand(
     "vsCodeAI.explainSelection",
     async () => {
-      logger.info("Forklaring startet.");
-      status.set("Venter på samtykke");
+
+      // Global ON/OFF switch from settings
+      const enabled = vscode.workspace
+        .getConfiguration("vsCodeAI")
+        .get<boolean>("enableAI", false);
+
+      if (!enabled) {
+        logger.warn("AI is disabled in settings.");
+        status.set("Cancelled");
+        vscode.window.showWarningMessage(
+          "AI is disabled. Enable it in VS Code AI settings."
+        );
+        return;
+      }
+
+      logger.info("Explanation started.");
+      status.set("Waiting for consent");
 
       const selectedText = getSelectedText(logger);
       if (!selectedText) {
-        status.set("Avbrutt");
+        status.set("Cancelled");
         return;
       }
 
+      // Explicit user consent
       const consent = await vscode.window.showInformationMessage(
-        "Vil du lage en forklaring av valgt kode?",
+        "Do you want to explain the selected code?",
         { modal: true },
-        "Ja",
-        "Nei"
+        "Yes",
+        "No"
       );
 
-      if (consent !== "Ja") {
-        logger.info("Bruker avbrøt.");
-        status.set("Avbrutt");
+      if (consent !== "Yes") {
+        logger.info("User cancelled explanation.");
+        status.set("Cancelled");
         return;
       }
 
-      status.set("Forklarer");
+      status.set("Explaining");
 
       const editor = vscode.window.activeTextEditor!;
       const input: ExplainInput = {
@@ -172,21 +231,20 @@ export function activate(context: vscode.ExtensionContext) {
           explainer.explain(input),
           2000,
           () => {
-            logger.warn("Timeout under forklaring.");
-            status.set("Avbrutt");
+            logger.warn("Explanation timed out.");
+            status.set("Cancelled");
             vscode.window.showWarningMessage(
-              "Forklaringen tok for lang tid og ble stoppet."
+              "Explanation took too long and was stopped."
             );
           }
         );
 
         presentExplanation(selectedText, result);
-        logger.info("Forklaring fullført.");
-        status.set("Fullført");
+        logger.info("Explanation completed.");
+        status.set("Completed");
       } catch {
-        logger.warn("Forklaring avbrutt.");
-        status.set("Avbrutt");
-        return;
+        logger.warn("Explanation aborted.");
+        status.set("Cancelled");
       }
     }
   );
@@ -194,36 +252,50 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(startDisposable, explainDisposable, status);
 }
 
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
+/**
+ * Reads the currently selected text from the active editor.
+ */
 function getSelectedText(logger: LocalLogger): string | null {
   const editor = vscode.window.activeTextEditor;
 
   if (!editor) {
-    logger.warn("Ingen aktiv editor.");
-    vscode.window.showWarningMessage("Ingen aktiv editor.");
+    logger.warn("No active editor.");
+    vscode.window.showWarningMessage("No active editor.");
     return null;
   }
 
   if (editor.selection.isEmpty) {
-    logger.warn("Ingen kode valgt.");
-    vscode.window.showWarningMessage("Ingen kode er valgt.");
+    logger.warn("No code selected.");
+    vscode.window.showWarningMessage("No code selected.");
     return null;
   }
 
   return editor.document.getText(editor.selection);
 }
 
+/**
+ * Presents the explanation in a dedicated Output Channel.
+ */
 function presentExplanation(code: string, result: ExplainOutput): void {
-  const output = vscode.window.createOutputChannel("VS Code AI – Forklaring");
+  const output = vscode.window.createOutputChannel("VS Code AI – Explanation");
   output.clear();
-  output.appendLine("=== Forklaring ===");
+  output.appendLine("=== Explanation ===");
   output.appendLine(result.summary);
   output.appendLine("");
   output.appendLine(result.details);
   output.appendLine("");
-  output.appendLine("=== Valgt kode ===");
+  output.appendLine("=== Selected Code ===");
   output.appendLine("");
   output.appendLine(code);
   output.show(true);
 }
+
+/* =========================================================
+   DEACTIVATION
+   ========================================================= */
 
 export function deactivate() {}
