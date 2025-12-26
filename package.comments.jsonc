@@ -1,0 +1,62 @@
+// DOCUMENTATION ONLY – NOT USED BY VS CODE OR npm
+
+{
+  // =====================================================
+  // BASIC EXTENSION METADATA
+  // =====================================================
+  "name": "vs-code-ai-extension",
+  "displayName": "VS Code AI (controlled)",
+  "description": "Controlled AI assistance for code work",
+  "version": "0.0.1",
+  "publisher": "local",
+
+  // =====================================================
+  // VS CODE ENGINE COMPATIBILITY
+  // =====================================================
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+
+  // =====================================================
+  // ACTIVATION
+  // Extension activates ONLY when commands are used
+  // =====================================================
+  "activationEvents": [
+    "onCommand:vsCodeAI.start",
+    "onCommand:vsCodeAI.explainSelection"
+  ],
+
+  // =====================================================
+  // CONTRIBUTIONS
+  // =====================================================
+  "contributes": {
+    // -------------------------
+    // Commands exposed to users
+    // -------------------------
+    "commands": [
+      {
+        "command": "vsCodeAI.start",
+        "title": "VS Code AI: Start"
+      },
+      {
+        "command": "vsCodeAI.explainSelection",
+        "title": "VS Code AI: Explain selected code"
+      }
+    ],
+
+    // -------------------------
+    // User configuration
+    // Explicit AI on/off switch
+    // -------------------------
+    "configuration": {
+      "title": "VS Code AI",
+      "properties": {
+        "vsCodeAI.enableAI": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable AI explanations. Requires explicit user consent every time."
+        }
+      }
+    }
+  }
+}
