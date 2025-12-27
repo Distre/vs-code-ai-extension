@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { AIAdapter } from "./provider";
 import { LocalAIAdapter } from "./localProvider";
+import { MockRemoteAIAdapter } from "./mockRemoteProvider";
 
 /* =========================================================
    AI ADAPTER REGISTRY
@@ -19,7 +20,8 @@ export class AIAdapterRegistry {
 
   constructor() {
     this.adapters = [
-      new LocalAIAdapter()
+      new LocalAIAdapter(),
+      new MockRemoteAIAdapter(),
     ];
   }
 
@@ -31,7 +33,7 @@ export class AIAdapterRegistry {
     const config = vscode.workspace.getConfiguration("vsCodeAI");
     const selectedId = config.get<string>("adapter", "local");
 
-    const adapter = this.adapters.find(a => a.id === selectedId);
+    const adapter = this.adapters.find((a) => a.id === selectedId);
 
     if (!adapter) {
       throw new Error(
