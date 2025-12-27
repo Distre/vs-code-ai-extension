@@ -8,6 +8,10 @@ import { LocalAIAdapter } from "./localProvider";
    No logic outside selection.
    ========================================================= */
 
+// NOTE:
+// RemoteAIAdapter exists as an architectural skeleton,
+// but is intentionally not registered or selectable.
+
 export class AIAdapterRegistry {
   private readonly adapters: AIAdapter[];
 
