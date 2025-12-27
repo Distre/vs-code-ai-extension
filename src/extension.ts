@@ -259,6 +259,31 @@ function getSelectedText(logger: LocalLogger): string | null {
   return editor.document.getText(editor.selection);
 }
 
+/* =========================================================
+   v3 – OUTPUT LIMITING (HARDCODED)
+   ========================================================= */
+
+const MAX_EXPLANATION_LINES = 12;
+const MAX_EXPLANATION_CHARS = 500;
+
+function limitExplanation(text: string): { text: string; truncated: boolean } {
+  let truncated = false;
+
+  let limitedByChars = text;
+  if (limitedByChars.length > MAX_EXPLANATION_CHARS) {
+    limitedByChars = limitedByChars.slice(0, MAX_EXPLANATION_CHARS);
+    truncated = true;
+  }
+
+  const lines = limitedByChars.split(/\r?\n/);
+  if (lines.length > MAX_EXPLANATION_LINES) {
+    limitedByChars = lines.slice(0, MAX_EXPLANATION_LINES).join("\n");
+    truncated = true;
+  }
+
+  return { text: limitedByChars, truncated };
+}
+
 function presentExplanation(
   explanation: string,
   meta: { language: string; lines: number; characters: number }
@@ -266,10 +291,18 @@ function presentExplanation(
   const output = vscode.window.createOutputChannel("VS Code AI – Explanation");
   output.clear();
 
+  const limited = limitExplanation(explanation);
+
   output.appendLine("=== AI Explanation ===");
   output.appendLine("");
   output.appendLine("Summary:");
-  output.appendLine(explanation);
+  output.appendLine(limited.text);
+
+  if (limited.truncated) {
+    output.appendLine("");
+    output.appendLine("[Output truncated]");
+  }
+
   output.appendLine("");
   output.appendLine("Metadata:");
   output.appendLine(`- Language: ${meta.language}`);
