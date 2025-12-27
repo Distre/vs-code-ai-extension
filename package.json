@@ -42,6 +42,12 @@
           "type": "boolean",
           "default": false,
           "description": "Aktiver AI-forklaringer. Krever eksplisitt samtykke hver gang."
+        },
+        "vsCodeAI.adapter": {
+          "type": "string",
+          "default": "local",
+          "enum": ["local", "remote"],
+          "description": "Velg hvilken AI-adapter som skal brukes. 'remote' er ikke konfigurert og vil feile eksplisitt."
         }
       }
     }
