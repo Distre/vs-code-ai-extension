@@ -144,7 +144,12 @@ export function activate(context: vscode.ExtensionContext) {
           }
         );
 
-        presentExplanation(selectedText, result);
+        presentExplanation(result, {
+          language,
+          lines: selectedText.split(/\r?\n/).length,
+          characters: selectedText.length
+        });
+
         status.set("Completed");
       } catch {
         status.set("Cancelled");
@@ -153,7 +158,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   // =====================================================
-  // NEW COMMAND – EXPLAIN ACTIVE FILE
+  // EXPLAIN ACTIVE FILE
   // =====================================================
 
   const explainActiveFileDisposable = vscode.commands.registerCommand(
@@ -211,7 +216,12 @@ export function activate(context: vscode.ExtensionContext) {
           }
         );
 
-        presentExplanation(text, result);
+        presentExplanation(result, {
+          language,
+          lines: text.split(/\r?\n/).length,
+          characters: text.length
+        });
+
         status.set("Completed");
       } catch {
         status.set("Cancelled");
@@ -249,15 +259,23 @@ function getSelectedText(logger: LocalLogger): string | null {
   return editor.document.getText(editor.selection);
 }
 
-function presentExplanation(code: string, result: string): void {
+function presentExplanation(
+  explanation: string,
+  meta: { language: string; lines: number; characters: number }
+): void {
   const output = vscode.window.createOutputChannel("VS Code AI – Explanation");
   output.clear();
-  output.appendLine("=== Explanation ===");
-  output.appendLine(result);
+
+  output.appendLine("=== AI Explanation ===");
   output.appendLine("");
-  output.appendLine("=== Code ===");
+  output.appendLine("Summary:");
+  output.appendLine(explanation);
   output.appendLine("");
-  output.appendLine(code);
+  output.appendLine("Metadata:");
+  output.appendLine(`- Language: ${meta.language}`);
+  output.appendLine(`- Lines: ${meta.lines}`);
+  output.appendLine(`- Characters: ${meta.characters}`);
+
   output.show(true);
 }
 
