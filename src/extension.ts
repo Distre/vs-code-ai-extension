@@ -75,11 +75,30 @@ export function activate(context: vscode.ExtensionContext) {
   const status = new StatusIndicator();
 
   const registry = new AIAdapterRegistry();
-  const adapter: AIAdapter = registry.getActiveAdapter();
-  const explainer: AIExplainer = adapter.getExplainer();
 
-  logger.info(`Extension activated. Using adapter: ${adapter.id}`);
-  status.set("Ready");
+  let adapter: AIAdapter | null = null;
+  let explainer: AIExplainer | null = null;
+
+  try {
+    adapter = registry.getActiveAdapter();
+    explainer = adapter.getExplainer();
+
+    logger.info(`Extension activated. Using adapter: ${adapter.id}`);
+    status.set("Ready");
+  } catch (err) {
+    const message =
+      err instanceof Error
+        ? err.message
+        : "Unknown error while selecting AI adapter.";
+
+    logger.warn(message);
+    status.set("Disabled (invalid adapter)");
+
+    vscode.window.showErrorMessage(
+      "Selected AI adapter ‘remote’ is not available.\n" +
+      "Please change VS Code AI → Adapter."
+    );
+  }
 
   const startDisposable = vscode.commands.registerCommand(
     "vsCodeAI.start",
@@ -95,6 +114,13 @@ export function activate(context: vscode.ExtensionContext) {
   const explainSelectionDisposable = vscode.commands.registerCommand(
     "vsCodeAI.explainSelection",
     async () => {
+      if (!explainer) {
+        vscode.window.showErrorMessage(
+          "AI is not available due to invalid adapter selection."
+        );
+        return;
+      }
+
       const enabled = vscode.workspace
         .getConfiguration("vsCodeAI")
         .get<boolean>("enableAI", false);
@@ -164,6 +190,13 @@ export function activate(context: vscode.ExtensionContext) {
   const explainActiveFileDisposable = vscode.commands.registerCommand(
     "vsCodeAI.explainActiveFile",
     async () => {
+      if (!explainer) {
+        vscode.window.showErrorMessage(
+          "AI is not available due to invalid adapter selection."
+        );
+        return;
+      }
+
       const enabled = vscode.workspace
         .getConfiguration("vsCodeAI")
         .get<boolean>("enableAI", false);

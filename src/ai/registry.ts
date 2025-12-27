@@ -1,3 +1,4 @@
+import * as vscode from "vscode";
 import { AIAdapter } from "./provider";
 import { LocalAIAdapter } from "./localProvider";
 
@@ -5,7 +6,8 @@ import { LocalAIAdapter } from "./localProvider";
    AI ADAPTER REGISTRY
    ---------------------------------------------------------
    Central, explicit registration of available adapters.
-   No logic outside selection.
+   Selection is controlled via user settings.
+   No fallback. Invalid selection fails explicitly.
    ========================================================= */
 
 // NOTE:
@@ -22,14 +24,25 @@ export class AIAdapterRegistry {
   }
 
   /**
-   * Returns the first available adapter.
-   * Deterministic selection order.
+   * Returns adapter selected via settings.
+   * Fails explicitly if adapter is invalid or unavailable.
    */
   getActiveAdapter(): AIAdapter {
-    const adapter = this.adapters.find(a => a.isAvailable());
+    const config = vscode.workspace.getConfiguration("vsCodeAI");
+    const selectedId = config.get<string>("adapter", "local");
+
+    const adapter = this.adapters.find(a => a.id === selectedId);
 
     if (!adapter) {
-      throw new Error("No available AI adapter found.");
+      throw new Error(
+        `Selected AI adapter '${selectedId}' is not registered.`
+      );
+    }
+
+    if (!adapter.isAvailable()) {
+      throw new Error(
+        `Selected AI adapter '${selectedId}' is not available.`
+      );
     }
 
     return adapter;
