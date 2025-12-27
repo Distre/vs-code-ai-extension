@@ -4,15 +4,21 @@
   "description": "Kontrollert AI-støtte for kodearbeid",
   "version": "0.0.1",
   "publisher": "local",
+
   "engines": {
     "vscode": "^1.90.0"
   },
+
   "categories": ["Other"],
+
   "activationEvents": [
     "onCommand:vsCodeAI.start",
-    "onCommand:vsCodeAI.explainSelection"
+    "onCommand:vsCodeAI.explainSelection",
+    "onCommand:vsCodeAI.explainActiveFile"
   ],
+
   "main": "./out/extension.js",
+
   "contributes": {
     "commands": [
       {
@@ -22,13 +28,30 @@
       {
         "command": "vsCodeAI.explainSelection",
         "title": "VS Code AI: Forklar valgt kode"
+      },
+      {
+        "command": "vsCodeAI.explainActiveFile",
+        "title": "AI: Forklar aktiv kodefil"
       }
-    ]
+    ],
+
+    "configuration": {
+      "title": "VS Code AI",
+      "properties": {
+        "vsCodeAI.enableAI": {
+          "type": "boolean",
+          "default": false,
+          "description": "Aktiver AI-forklaringer. Krever eksplisitt samtykke hver gang."
+        }
+      }
+    }
   },
+
   "scripts": {
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./"
   },
+
   "devDependencies": {
     "typescript": "^5.4.0",
     "@types/vscode": "^1.90.0"

@@ -1,4 +1,5 @@
 // DOCUMENTATION ONLY – NOT USED BY VS CODE OR npm
+// This file mirrors package.json with comments for clarity and governance.
 
 {
   // =====================================================
@@ -19,11 +20,13 @@
 
   // =====================================================
   // ACTIVATION
-  // Extension activates ONLY when commands are used
+  // Extension activates ONLY when explicit commands are used
+  // No background or automatic activation
   // =====================================================
   "activationEvents": [
     "onCommand:vsCodeAI.start",
-    "onCommand:vsCodeAI.explainSelection"
+    "onCommand:vsCodeAI.explainSelection",
+    "onCommand:vsCodeAI.explainActiveFile" // NEW – explain active file via explicit command
   ],
 
   // =====================================================
@@ -41,6 +44,13 @@
       {
         "command": "vsCodeAI.explainSelection",
         "title": "VS Code AI: Explain selected code"
+      },
+      {
+        // NEW COMMAND
+        // Explains the currently active file
+        // Used to satisfy Code Phase Goal v1
+        "command": "vsCodeAI.explainActiveFile",
+        "title": "AI: Explain active code file"
       }
     ],
 
